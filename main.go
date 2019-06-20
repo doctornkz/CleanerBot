@@ -25,6 +25,8 @@ var (
 	botAPIKey string
 	chatid    string
 	chatID    int64
+	channelid string
+	channelID int64
 	response  apiResponse
 )
 
@@ -35,23 +37,30 @@ const (
 func init() {
 	//yndAPIKeyPtr := flag.String("yndapikey", "", "YandexApiKey.")
 	botAPIKeyPtr := flag.String("botapikey", "", "Bot ApiKey. See @BotFather messages for details")
-	ChatIDPtr := flag.String("chatid", "", "ChatID or ChannelID")
+	chatIDPtr := flag.String("chatid", "", "ChatID")
+	channelIDPtr := flag.String("channelid", "", "ChannelID")
 
 	flag.Parse()
 
 	//yndAPIKey = *yndAPIKeyPtr
 	botAPIKey = *botAPIKeyPtr
-	chatid = *ChatIDPtr
-	if botAPIKey == "" || chatid == "" {
+	chatid = *chatIDPtr
+	channelid = *channelIDPtr
+	if botAPIKey == "" || chatid == "" || channelid == "" {
 		fmt.Println("Empty parameters, please use --help")
 		os.Exit(1)
 	}
 	chatidInt32, err := strconv.Atoi(chatid)
 	if err != nil {
-		fmt.Println("Can't convert parameter to ChatID, check input")
+		fmt.Println("Can't convert parameter to chatID, check input")
 	}
 	chatID = int64(chatidInt32)
 
+	channelidInt32, err := strconv.Atoi(channelid)
+	if err != nil {
+		fmt.Println("Can't convert parameter to channelID, check input")
+	}
+	channelID = int64(channelidInt32)
 }
 
 func main() {
@@ -77,11 +86,22 @@ func main() {
 
 		log.Printf("Message: %v", update.Message)
 		log.Printf("ChatId: %v", update.Message.Chat.ID)
-		// if photo if from channel
-		//if update.Message.  {
-		//	msg := tgbotapi.NewMessage(chatID, "Photo!")
-		//}
-		//bot.Send(msg)
+
+		isForward := false
+		isPhoto := false
+
+		if update.Message.ForwardFromChat.ID == channelID {
+			log.Printf("forward %v", update.Message.ForwardFromChat.ID)
+			isForward = true
+		}
+		if update.Message.Photo != nil {
+			isPhoto = true
+		}
+		if isForward && isPhoto {
+			log.Println("Forwarded photo, removing")
+			deleteMessageConfig := tgbotapi.DeleteMessageConfig{ChatID: chatID, MessageID: update.Message.MessageID}
+			bot.DeleteMessage(deleteMessageConfig)
+		}
 	}
 }
 
@@ -101,12 +121,10 @@ func getTranslate(phrase string) string {
 	if err != nil {
 		log.Fatal()
 	}
-
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		fmt.Println("Can't unmarshal")
 		log.Fatal()
 	}
-
 	return response.Text[0]
 }
