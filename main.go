@@ -73,6 +73,8 @@ func main() {
 	bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+	log.Printf("ID %d", bot.Self.ID)
+	log.Printf("Is Bot? %v", bot.Self.IsBot)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -88,20 +90,34 @@ func main() {
 		log.Printf("ChatId: %v", update.Message.Chat.ID)
 
 		isForward := false
-		isPhoto := false
+		isMedia := false
 
-		if update.Message.ForwardFromChat.ID == channelID {
-			log.Printf("forward %v", update.Message.ForwardFromChat.ID)
-			isForward = true
+		log.Println("Before check forward")
+
+		if update.Message.ForwardFromChat != nil {
+			if update.Message.ForwardFromChat.ID == channelID {
+				log.Printf("forward %v", update.Message.ForwardFromChat.ID)
+				isForward = true
+			}
 		}
+		log.Println("After check forward")
 		if update.Message.Photo != nil {
-			isPhoto = true
+			isMedia = true
 		}
-		if isForward && isPhoto {
+
+		if update.Message.Video != nil {
+			isMedia = true
+		}
+
+		log.Println("After check photo")
+		if isForward && isMedia {
 			log.Println("Forwarded photo, removing")
 			deleteMessageConfig := tgbotapi.DeleteMessageConfig{ChatID: chatID, MessageID: update.Message.MessageID}
 			bot.DeleteMessage(deleteMessageConfig)
+		} else {
+			log.Println("Skipp message")
 		}
+
 	}
 }
 
