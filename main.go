@@ -82,9 +82,11 @@ func main() {
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message.Chat == nil { // ignore any non-Message Updates
+		if update.Message == nil || update.EditedMessage != nil {
 			continue
 		}
+
+		log.Printf("Message: %v", "detected")
 
 		log.Printf("Message: %v", update.Message)
 		log.Printf("ChatId: %v", update.Message.Chat.ID)
